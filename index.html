@@ -146,7 +146,7 @@ button .val { color: var(--gold); }
     <button id="fsBtn" type="button">FULL SCREEN</button>
   </div>
 
-  <p class="hint"><b>Jump:</b> space bar, up arrow, or tap the screen. Hold for a bigger jump. Grab acorns for <b>+25</b>. <b>Bounce on hedgehogs and swans</b> for +50, and chain bounces for more. Stumps, rocks, bollards, crates and walls still need jumping over. <b>Levels:</b> the Autumn Wood, or a dash down Winchester High Street past the cathedral, the Great Hall, the Westgate and King Alfred.</p>
+  <p class="hint"><b>Jump:</b> space bar, up arrow, or tap the screen. Hold for a bigger jump. Grab acorns for <b>+25</b>. <b>Bounce on hedgehogs and swans</b> for +50, and chain bounces for more. <b>Headbutt a ? box</b> from underneath for a golden acorn: 7 seconds as Super Squirrel, smashing through anything in the way. Stumps, rocks, bollards, crates and walls still need jumping over. <b>Levels:</b> the Autumn Wood, or a dash down Winchester High Street past the cathedral, the Great Hall, the Westgate and King Alfred.</p>
 </div>
 
 <script>
@@ -241,6 +241,35 @@ button .val { color: var(--gold); }
     "....DDDDDDD..."
   ], { D: "#2a2a35", w: "#f4f2ee", b: "#f08a24", k: "#111111" });
 
+  const GOLD_PAL = { D: "#7a4a00", o: "#f2c230", t: "#ffe680", c: "#fff6d0", k: "#3a2000" };
+  const gRunA = sprite(SQ_BODY.concat([".....DoD..DoD...", "....DDD..DDD...."]), GOLD_PAL);
+  const gRunB = sprite(SQ_BODY.concat(["......DoDDoD....", ".....DDD.DDD...."]), GOLD_PAL);
+  const gJump = sprite(SQ_BODY.concat(["......DooooD....", ".......DDDD....."]), GOLD_PAL);
+  const qBlock = sprite([
+    "BBBBBBBBBB",
+    "BLLLLLLLLB",
+    "BLYYQQYYSB",
+    "BLYQYYQYSB",
+    "BLYYYYQYSB",
+    "BLYYYQYYSB",
+    "BLYYYYYYSB",
+    "BLYYYQYYSB",
+    "BSSSSSSSSB",
+    "BBBBBBBBBB"
+  ], { B: "#5a2e0a", L: "#ffd36a", Y: "#f0a830", S: "#b86f1c", Q: "#fff4d6" });
+  const usedBlock = sprite([
+    "BBBBBBBBBB",
+    "BUUUUUUUUB",
+    "BUrUUUUrUB",
+    "BUUUUUUUUB",
+    "BUUUUUUUUB",
+    "BUUUUUUUUB",
+    "BUUUUUUUUB",
+    "BUrUUUUrUB",
+    "BUUUUUUUUB",
+    "BBBBBBBBBB"
+  ], { B: "#3a1e0a", U: "#8a5a34", r: "#4a2a14" });
+  const goldAcorn = sprite(["..D...", ".CCCC.", "CCCCCC", ".aaaa.", ".aaaa.", "..aa.."], { D: "#5a3a00", C: "#b07a10", a: "#ffe14a" });
   const acornSpr = sprite(["..D...", ".CCCC.", "CCCCCC", ".aaaa.", ".aaaa.", "..aa.."], { D: "#3b1d0e", C: "#6b3a1a", a: "#e0a945" });
 
   // ---------- obstacle drawing ----------
@@ -545,6 +574,9 @@ button .val { color: var(--gold); }
     jump: () => beep(320, 640, 0.12),
     acorn: () => { beep(880, 1320, 0.07); beep(1320, 1760, 0.08, "square", 0.05, 0.07); },
     crash: () => beep(220, 50, 0.45, "sawtooth", 0.08),
+    bump: () => { beep(180, 140, 0.06, "square", 0.07); beep(600, 1200, 0.18, "triangle", 0.07, 0.05); },
+    power: () => [523, 659, 784, 1047, 1319].forEach((f, i) => beep(f, f, 0.08, "square", 0.05, i * 0.07)),
+    pow: () => beep(900, 300, 0.12, "square", 0.06),
     stomp: () => { beep(260, 120, 0.08, "square", 0.07); beep(700, 1400, 0.12, "square", 0.05, 0.06); },
     milestone: () => { beep(660, 660, 0.06, "square", 0.04); beep(990, 990, 0.08, "square", 0.04, 0.07); },
     select: () => beep(520, 780, 0.06, "square", 0.04)
@@ -554,6 +586,8 @@ button .val { color: var(--gold); }
   let state = "title", t = 0, overT = 0, shake = 0, bannerT = 0;
   let speed = SPEEDS[mode].start, score = 0, acornsGot = 0, nextMilestone = 100, newHi = false, flash = 0;
   let obstacles = [], acorns = [], floats = [], stars = [], combo = 0, stomps = 0;
+  let blocks = [], items = [], superT = 0, powerT = 0, powerBeat = 0, powerNote = 0;
+  const POWER_TIME = 7, BLOCK = 20, BLOCK_Y = GY - 82;
   let obsDist = 0, acornDist = 0;
   let scrollFar = 0, scrollMid = 0, scrollGround = 0;
   let held = false;
@@ -579,6 +613,7 @@ button .val { color: var(--gold); }
   function reset() {
     speed = SPEEDS[mode].start; score = 0; acornsGot = 0; nextMilestone = 100; newHi = false;
     obstacles = []; acorns = []; floats = []; stars = []; combo = 0; stomps = 0;
+    blocks = []; items = []; powerT = 0;
     obsDist = 180; acornDist = 260;
     player.y = GY - 26; player.vy = 0; player.onGround = true; player.buffer = 0;
   }
@@ -612,6 +647,7 @@ button .val { color: var(--gold); }
     if (shake > 0) shake -= dt;
     if (flash > 0) flash -= dt;
     if (bannerT > 0) bannerT -= dt;
+    if (superT > 0) superT -= dt;
 
     if (state === "title") { scroll(50 * dt); player.animT += dt; return; }
     if (state === "over") { overT += dt; return; }
@@ -628,15 +664,58 @@ button .val { color: var(--gold); }
       player.vy = JUMP_V; player.onGround = false; player.buffer = 0; sfx.jump();
     }
     const prevY = player.y;
+    const overX = b => player.x + 14 < b.x + BLOCK && player.x + 30 > b.x;
+    for (const b of blocks) { b.x -= dx; if (b.bump > 0) b.bump -= dt; }
+    blocks = blocks.filter(b => b.x > -BLOCK - 4);
+    // walked off the edge of a block
+    if (player.onGround && player.y < GY - 27 && !blocks.some(b => overX(b) && Math.abs(player.y + 24 - b.y) < 2)) {
+      player.onGround = false; player.vy = 0;
+    }
     if (!player.onGround) {
       if (!held && player.vy < CUT_V) player.vy = CUT_V;
       player.vy += GRAV * dt;
       player.y += player.vy * dt;
+      for (const b of blocks) {
+        if (!overX(b)) continue;
+        if (player.vy < 0 && prevY + 4 >= b.y + BLOCK - 2 && player.y + 4 < b.y + BLOCK) {
+          player.y = b.y + BLOCK - 4; player.vy = 60;
+          b.bump = 0.15;
+          if (!b.used) {
+            b.used = true; sfx.bump();
+            items.push({ x: b.x + 4, y: b.y - 2, t: 0 });
+          }
+        } else if (player.vy > 0 && prevY + 24 <= b.y + 1 && player.y + 24 >= b.y) {
+          player.y = b.y - 24; player.vy = 0; player.onGround = true; combo = 0;
+        }
+      }
       if (player.y >= GY - 26) { player.y = GY - 26; player.vy = 0; player.onGround = true; combo = 0; }
+    }
+
+    for (const it of items) {
+      it.x -= dx; it.t += dt;
+      it.y -= (it.t < 0.35 ? 60 : 0) * dt;
+      if (it.t >= 0.45 && !it.got) {
+        it.got = true;
+        powerT = POWER_TIME; powerBeat = 0; sfx.power();
+        superT = 1.6;
+        for (let k = 0; k < 14; k++) stars.push({ x: it.x + 6, y: it.y + 6, vx: (Math.random() - 0.5) * 200, vy: -80 - Math.random() * 140, life: 0.6 + Math.random() * 0.3 });
+      }
+    }
+    items = items.filter(it => !it.got);
+
+    if (powerT > 0) {
+      powerT -= dt;
+      powerBeat -= dt;
+      if (powerBeat <= 0) { const n = [523, 659, 784, 659][powerNote++ % 4]; beep(n, n, 0.06, "square", 0.025); powerBeat = 0.13; }
+      if (Math.random() < 0.5) stars.push({ x: player.x + 4 + Math.random() * 10, y: player.y + 6 + Math.random() * 14, vx: -40, vy: -20, life: 0.3 });
     }
     player.animT += dt * speed / 160;
 
     obsDist -= dx;
+    if (obsDist <= 0 && score > 40 && Math.random() < 0.14) {
+      blocks.push({ x: W + 10, y: BLOCK_Y, used: false, bump: 0 });
+      obsDist = (speed * (0.9 + Math.random() * 0.6) + 70) * cfg.gap;
+    }
     if (obsDist <= 0) {
       const o = L.pick(score);
       const add = (type, w, h, x) => obstacles.push({ type, w, h, x, y: GY - h, creature: type === "swan" || type === "hedge", walk: type === "swan" ? 26 : type === "hedge" ? 16 : 0 });
@@ -654,7 +733,8 @@ button .val { color: var(--gold); }
 
     const box = { x: player.x + 14, y: player.y + 4, w: 16, h: 20 };
     for (const o of obstacles) {
-      o.x -= dx + (o.dead ? 0 : o.walk * dt);
+      o.x -= dx + (o.dead || o.knocked ? 0 : o.walk * dt);
+      if (o.knocked) { o.kx += 160 * dt; o.ky += o.kvy * dt; o.kvy += 900 * dt; o.rot += 12 * dt; continue; }
       if (o.dead) { o.deadT += dt; continue; }
       if (!hit(box, { x: o.x + 2, y: o.y + 2, w: o.w - 4, h: o.h - 2 })) continue;
       if (o.creature && player.vy > 0 && prevY + 24 <= o.y + 12) {
@@ -668,9 +748,15 @@ button .val { color: var(--gold); }
         for (let k = 0; k < 10; k++) stars.push({ x: o.x + o.w / 2, y: o.y + 4, vx: (Math.random() - 0.5) * 160, vy: -60 - Math.random() * 120, life: 0.5 + Math.random() * 0.3 });
         continue;
       }
+      if (powerT > 0) {
+        o.knocked = true; o.kx = 0; o.ky = 0; o.kvy = -320; o.rot = 0;
+        score += 25; sfx.pow();
+        floats.push({ x: o.x, y: o.y - 12, life: 0.8, txt: "POW +25" });
+        continue;
+      }
       gameOver(); return;
     }
-    obstacles = obstacles.filter(o => o.x + o.w > -10 && !(o.dead && o.deadT > 0.45));
+    obstacles = obstacles.filter(o => o.x + o.w > -10 && !(o.dead && o.deadT > 0.45) && !(o.knocked && o.ky > 120));
     for (const st of stars) { st.x += st.vx * dt - dx; st.y += st.vy * dt; st.vy += 400 * dt; st.life -= dt; }
     stars = stars.filter(st => st.life > 0);
 
@@ -711,15 +797,29 @@ button .val { color: var(--gold); }
     const gx = Math.floor(scrollGround % 64);
     for (let x = -gx; x < W; x += 64) ctx.drawImage(L.ground, x, GY);
 
-    for (const o of obstacles) drawObstacle(o);
+    for (const b of blocks) {
+      const by = b.bump > 0 ? -Math.round(Math.sin((b.bump / 0.15) * Math.PI) * 5) : 0;
+      ctx.drawImage(b.used ? usedBlock : qBlock, 0, 0, 10, 10, Math.round(b.x), b.y + by, BLOCK, BLOCK);
+    }
+    for (const it of items) ctx.drawImage(goldAcorn, 0, 0, 6, 6, Math.round(it.x), Math.round(it.y) - 12, 12, 12);
+    for (const o of obstacles) {
+      if (o.knocked) {
+        ctx.save();
+        const cx = o.x + o.w / 2, cy = o.y + o.h / 2;
+        ctx.translate(cx + o.kx, cy + o.ky); ctx.rotate(o.rot); ctx.translate(-cx, -cy);
+        drawObstacle(o);
+        ctx.restore();
+      } else drawObstacle(o);
+    }
     for (const a of acorns) {
       const by = Math.round(Math.sin(t * 5 + a.x * 0.05) * 2);
       ctx.drawImage(acornSpr, 0, 0, 6, 6, Math.round(a.x), a.y + by, 12, 12);
     }
 
+    const goldOn = powerT > 0 && (powerT > 1.5 ? Math.floor(t * 14) % 3 !== 0 : Math.floor(t * 6) % 2 === 0);
     let spr;
-    if (state === "over" || !player.onGround) spr = sqJump;
-    else spr = Math.floor(player.animT / 0.1) % 2 ? sqRunB : sqRunA;
+    if (state === "over" || !player.onGround) spr = goldOn ? gJump : sqJump;
+    else spr = Math.floor(player.animT / 0.1) % 2 ? (goldOn ? gRunB : sqRunB) : (goldOn ? gRunA : sqRunA);
     const blink = state === "over" && Math.floor(overT * 8) % 2 === 0 && overT < 0.6;
     if (!blink) ctx.drawImage(spr, 0, 0, 16, 13, player.x, Math.round(player.y), 32, 26);
 
@@ -734,10 +834,18 @@ button .val { color: var(--gold); }
     if (state !== "title") {
       const sc = String(Math.floor(score)).padStart(5, "0");
       const showScore = flash <= 0 || Math.floor(flash * 8) % 2 === 0;
-      text("HI " + String(hi).padStart(5, "0"), W - 98, 8, 8, "#e9dcff");
+      text("HI " + String(hi).padStart(5, "0"), W - 66, 8, 8, "#e9dcff", "right");
       if (showScore) text(sc, W - 10, 8, 8, "#f6e7c8", "right");
       ctx.drawImage(acornSpr, 0, 0, 6, 6, 8, 6, 12, 12);
       text("x" + acornsGot, 24, 8, 8, "#f6e7c8");
+      if (powerT > 0) {
+        ctx.drawImage(goldAcorn, 0, 0, 6, 6, 8, 22, 12, 12);
+        R(ctx, 24, 26, 62, 6, "#2a0f22");
+        R(ctx, 25, 27, Math.max(0, Math.round(60 * powerT / POWER_TIME)), 4, "#ffd23f");
+      }
+    }
+    if (state === "play" && superT > 0) {
+      text("SUPER SQUIRREL!", W / 2, 58, 12, Math.floor(t * 10) % 2 ? "#ffd23f" : "#fff4d6", "center", "#7a3c0a");
     }
     if (state === "play" && bannerT > 0 && Math.floor(bannerT * 6) % 2 === 0) {
       text(L.name, W / 2, 40, 12, "#ffd23f", "center", "#5a1a10");
