@@ -147,7 +147,7 @@ button .val { color: var(--gold); }
     <button id="fsBtn" type="button">FULL SCREEN</button>
   </div>
 
-  <p class="hint"><b>Pick your squirrel</b> after the title screen: Classic, Ninja, Rugby or School. <b>Jump:</b> space bar, up arrow, or tap the screen. Hold for a bigger jump. Grab acorns for <b>+25</b>. <b>Bounce on hedgehogs and swans</b> for +50, and chain bounces for more. <b>Headbutt a ? box</b> from underneath for a golden acorn: 7 seconds as Super Squirrel, smashing through anything in the way. Stumps, rocks, bollards, crates and walls still need jumping over. <b>Levels:</b> the Autumn Wood, or a dash down Winchester High Street past the cathedral, the Great Hall, the Westgate and King Alfred.</p>
+  <p class="hint"><b>Pick your squirrel</b> after the title screen: Classic, Ninja, Rugby or School. <b>Jump:</b> space bar, up arrow, or tap the screen. Hold for a bigger jump. Grab acorns for <b>+25</b>. <b>Bounce on hedgehogs and swans</b> for +50, and chain bounces for more. <b>Headbutt a ? box</b> from underneath for a golden acorn: 7 seconds as Super Squirrel, smashing through anything in the way. Land on top of stumps, rocks, bollards, crates and walls to run along them, but don't run into their sides. <b>Levels:</b> the Autumn Wood, or a dash down Winchester High Street past the cathedral, the Great Hall, the Westgate and King Alfred.</p>
 </div>
 
 <script>
@@ -716,7 +716,8 @@ button .val { color: var(--gold); }
     for (const b of blocks) { b.x -= dx; if (b.bump > 0) b.bump -= dt; }
     blocks = blocks.filter(b => b.x > -BLOCK - 4);
     // walked off the edge of a block
-    if (player.onGround && player.y < GY - 27 && !blocks.some(b => overX(b) && Math.abs(player.y + 24 - b.y) < 2)) {
+    const onTop = o => !o.creature && !o.knocked && player.x + 14 < o.x + o.w && player.x + 30 > o.x && Math.abs(player.y + 24 - o.y) < 2;
+    if (player.onGround && player.y < GY - 27 && !blocks.some(b => overX(b) && Math.abs(player.y + 24 - b.y) < 2) && !obstacles.some(onTop)) {
       player.onGround = false; player.vy = 0;
     }
     if (!player.onGround) {
@@ -794,6 +795,11 @@ button .val { color: var(--gold); }
         sfx.stomp();
         floats.push({ x: o.x, y: o.y - 10, life: 0.9, txt: "+" + pts + (combo > 1 ? " x" + combo : "") });
         for (let k = 0; k < 10; k++) stars.push({ x: o.x + o.w / 2, y: o.y + 4, vx: (Math.random() - 0.5) * 160, vy: -60 - Math.random() * 120, life: 0.5 + Math.random() * 0.3 });
+        continue;
+      }
+      if (!o.creature && player.vy >= 0 && prevY + 24 <= o.y + 8) {
+        player.y = o.y - 24; player.vy = 0;
+        if (!player.onGround) { player.onGround = true; combo = 0; }
         continue;
       }
       if (powerT > 0) {
