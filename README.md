@@ -4,6 +4,7 @@ A retro arcade side-scroller made for Ru. A squirrel runs through an autumn wood
 
 ## How to play
 
+- **Squirrels:** after the title screen, choose Classic, Ninja, Rugby or School. Tap one to start, or use the arrow keys and space. The Squirrel button under the game changes it too.
 - **Jump:** space bar, up arrow, or tap the screen. Hold for a bigger jump.
 - **Acorns:** +25 points each.
 - **Boing!** Land on top of a hedgehog or swan to bounce off it for +50. Chain bounces without touching the ground for 100, then 200. Stumps, rocks, bollards, crates and walls still have to be jumped over.

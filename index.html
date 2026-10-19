@@ -140,13 +140,14 @@ button .val { color: var(--gold); }
   </div>
 
   <div class="controls">
+    <button id="charBtn" type="button">SQUIRREL: <span class="val" id="charVal">CLASSIC</span></button>
     <button id="levelBtn" type="button">LEVEL: <span class="val" id="levelVal">WOOD</span></button>
     <button id="speedBtn" type="button">SPEED: <span class="val" id="speedVal">GENTLE</span></button>
     <button id="soundBtn" type="button">SOUND: <span class="val" id="soundVal">ON</span></button>
     <button id="fsBtn" type="button">FULL SCREEN</button>
   </div>
 
-  <p class="hint"><b>Jump:</b> space bar, up arrow, or tap the screen. Hold for a bigger jump. Grab acorns for <b>+25</b>. <b>Bounce on hedgehogs and swans</b> for +50, and chain bounces for more. <b>Headbutt a ? box</b> from underneath for a golden acorn: 7 seconds as Super Squirrel, smashing through anything in the way. Stumps, rocks, bollards, crates and walls still need jumping over. <b>Levels:</b> the Autumn Wood, or a dash down Winchester High Street past the cathedral, the Great Hall, the Westgate and King Alfred.</p>
+  <p class="hint"><b>Pick your squirrel</b> after the title screen: Classic, Ninja, Rugby or School. <b>Jump:</b> space bar, up arrow, or tap the screen. Hold for a bigger jump. Grab acorns for <b>+25</b>. <b>Bounce on hedgehogs and swans</b> for +50, and chain bounces for more. <b>Headbutt a ? box</b> from underneath for a golden acorn: 7 seconds as Super Squirrel, smashing through anything in the way. Stumps, rocks, bollards, crates and walls still need jumping over. <b>Levels:</b> the Autumn Wood, or a dash down Winchester High Street past the cathedral, the Great Hall, the Westgate and King Alfred.</p>
 </div>
 
 <script>
@@ -242,9 +243,44 @@ button .val { color: var(--gold); }
   ], { D: "#2a2a35", w: "#f4f2ee", b: "#f08a24", k: "#111111" });
 
   const GOLD_PAL = { D: "#7a4a00", o: "#f2c230", t: "#ffe680", c: "#fff6d0", k: "#3a2000" };
-  const gRunA = sprite(SQ_BODY.concat([".....DoD..DoD...", "....DDD..DDD...."]), GOLD_PAL);
-  const gRunB = sprite(SQ_BODY.concat(["......DoDDoD....", ".....DDD.DDD...."]), GOLD_PAL);
-  const gJump = sprite(SQ_BODY.concat(["......DooooD....", ".......DDDD....."]), GOLD_PAL);
+  // ---------- characters ----------
+  const LEGS = [
+    [".....DoD..DoD...", "....DDD..DDD...."],
+    ["......DoDDoD....", ".....DDD.DDD...."],
+    ["......DooooD....", ".......DDDD....."]
+  ];
+  function buildSet(pal, overlay) {
+    return LEGS.map(legs => {
+      const c = sprite(SQ_BODY.concat(legs), pal), x = c.getContext("2d");
+      overlay.forEach(([X, Y, w, h, col]) => R(x, X, Y, w, h, col));
+      return c;
+    });
+  }
+  const NINJA_PAL = { D: "#0e0b16", o: "#2b2840", t: "#c8642a", c: "#2b2840", k: "#111111" };
+  const NINJA_GOLD = { D: "#7a4a00", o: "#3a3020", t: "#ffe680", c: "#3a3020", k: "#111111" };
+  const RED = "#d8262f";
+  const CHARS = [
+    { name: "CLASSIC", pal: SQ_PAL, overlay: [] },
+    { name: "NINJA", pal: NINJA_PAL, gpal: NINJA_GOLD, overlay: [
+      [10, 3, 5, 1, "#e8a870"], [12, 3, 1, 1, "#111111"],            // eye slit
+      [9, 2, 6, 1, RED], [7, 2, 2, 1, RED], [6, 1, 2, 1, RED], [4, 0, 2, 1, RED], // headband and tails
+      [8, 8, 6, 1, RED], [9, 9, 1, 1, RED]                            // belt
+    ] },
+    { name: "RUGBY", pal: SQ_PAL, overlay: [
+      [9, 6, 5, 1, "#1e7a3c"], [8, 7, 6, 1, "#f4f2ee"], [7, 8, 8, 1, "#1e7a3c"], [6, 9, 8, 1, "#f4f2ee"], // hooped shirt
+      [6, 10, 6, 1, "#f4f2ee"],                                        // shorts
+      [9, 1, 4, 1, "#1d2f6e"], [9, 2, 5, 1, "#1d2f6e"],                // scrum cap
+      [12, 7, 3, 3, "#8a4a1c"], [11, 8, 5, 1, "#8a4a1c"], [13, 8, 1, 1, "#f4f2ee"] // ball under arm
+    ] },
+    { name: "SCHOOL", pal: SQ_PAL, overlay: [
+      [9, 1, 5, 2, "#7a1f3d"], [14, 2, 2, 1, "#5a1530"], [11, 0, 1, 1, "#e0b020"], // cap with peak
+      [9, 6, 5, 1, "#7a1f3d"], [8, 7, 7, 1, "#7a1f3d"], [7, 8, 8, 1, "#7a1f3d"], [6, 9, 8, 1, "#7a1f3d"], // blazer
+      [12, 6, 2, 3, "#f4f2ee"], [12, 7, 1, 2, "#e0b020"], [13, 8, 1, 1, "#2a3a7a"], // shirt and tie
+      [6, 10, 6, 1, "#7d7a86"],                                        // grey shorts
+      [9, 7, 1, 1, "#e0b020"]                                          // badge
+    ] }
+  ];
+  CHARS.forEach(c => { c.norm = buildSet(c.pal, c.overlay); c.gold = buildSet(c.gpal || GOLD_PAL, c.overlay); });
   const qBlock = sprite([
     "BBBBBBBBBB",
     "BLLLLLLLLB",
@@ -618,9 +654,21 @@ button .val { color: var(--gold); }
     player.y = GY - 26; player.vy = 0; player.onGround = true; player.buffer = 0;
   }
 
+  let charIdx = parseInt(store.get("sqd-char", "0"), 10) || 0;
+  if (!CHARS[charIdx]) charIdx = 0;
+  function setChar(i) { charIdx = (i + CHARS.length) % CHARS.length; store.set("sqd-char", String(charIdx)); paintButtons(); }
+  const SLOT_W = 88, SLOT_X0 = (W - SLOT_W * CHARS.length) / 2, SLOT_Y = 52, SLOT_H = 92;
+  function slotAt(x, y) {
+    if (y < SLOT_Y || y > SLOT_Y + SLOT_H) return -1;
+    const i = Math.floor((x - SLOT_X0) / SLOT_W);
+    return i >= 0 && i < CHARS.length ? i : -1;
+  }
+  function startRun() { reset(); state = "play"; bannerT = 1.8; sfx.jump(); }
+
   function press() {
     held = true;
-    if (state === "title") { reset(); state = "play"; bannerT = 1.8; sfx.jump(); return; }
+    if (state === "title") { state = "select"; sfx.select(); return; }
+    if (state === "select") { startRun(); return; }
     if (state === "over") { if (overT > 0.6) { reset(); state = "play"; bannerT = 1.8; } return; }
     player.buffer = 0.12;
   }
@@ -649,7 +697,7 @@ button .val { color: var(--gold); }
     if (bannerT > 0) bannerT -= dt;
     if (superT > 0) superT -= dt;
 
-    if (state === "title") { scroll(50 * dt); player.animT += dt; return; }
+    if (state === "title" || state === "select") { scroll(50 * dt); player.animT += dt; return; }
     if (state === "over") { overT += dt; return; }
 
     const cfg = SPEEDS[mode];
@@ -817,11 +865,12 @@ button .val { color: var(--gold); }
     }
 
     const goldOn = powerT > 0 && (powerT > 1.5 ? Math.floor(t * 14) % 3 !== 0 : Math.floor(t * 6) % 2 === 0);
+    const set = goldOn ? CHARS[charIdx].gold : CHARS[charIdx].norm;
     let spr;
-    if (state === "over" || !player.onGround) spr = goldOn ? gJump : sqJump;
-    else spr = Math.floor(player.animT / 0.1) % 2 ? (goldOn ? gRunB : sqRunB) : (goldOn ? gRunA : sqRunA);
+    if (state === "over" || !player.onGround) spr = set[2];
+    else spr = set[Math.floor(player.animT / 0.1) % 2 ? 1 : 0];
     const blink = state === "over" && Math.floor(overT * 8) % 2 === 0 && overT < 0.6;
-    if (!blink) ctx.drawImage(spr, 0, 0, 16, 13, player.x, Math.round(player.y), 32, 26);
+    if (!blink && state !== "select") ctx.drawImage(spr, 0, 0, 16, 13, player.x, Math.round(player.y), 32, 26);
 
     for (const l of leaves) {
       const c = L.leaves[l.i % L.leaves.length];
@@ -831,7 +880,7 @@ button .val { color: var(--gold); }
     for (const f of floats) text(f.txt, Math.round(f.x), Math.round(f.y), 8, "#ffd23f");
     ctx.restore();
 
-    if (state !== "title") {
+    if (state !== "title" && state !== "select") {
       const sc = String(Math.floor(score)).padStart(5, "0");
       const showScore = flash <= 0 || Math.floor(flash * 8) % 2 === 0;
       text("HI " + String(hi).padStart(5, "0"), W - 66, 8, 8, "#e9dcff", "right");
@@ -858,6 +907,21 @@ button .val { color: var(--gold); }
       text("<  " + L.name + "  >", W / 2, 100, 8, "#f6e7c8", "center");
       if (Math.floor(t * 2) % 2 === 0) text("PRESS SPACE OR TAP", W / 2, 122, 8, "#ffd23f", "center");
       text("HI " + String(hi).padStart(5, "0"), W / 2, 140, 8, "#e9dcff", "center");
+    }
+    if (state === "select") {
+      R(ctx, 0, 0, W, H, "rgba(18,9,31,0.6)");
+      text("CHOOSE YOUR SQUIRREL", W / 2, 24, 8, "#ffd23f", "center", "#5a1a10");
+      CHARS.forEach((c, i) => {
+        const x0 = SLOT_X0 + i * SLOT_W + 4, sel = i === charIdx;
+        R(ctx, x0, SLOT_Y, SLOT_W - 8, SLOT_H, sel ? "#ffd23f" : "#3a2457");
+        R(ctx, x0 + 3, SLOT_Y + 3, SLOT_W - 14, SLOT_H - 6, sel ? "#2e1a4a" : "#1a0f2c");
+        const frame = sel ? c.norm[Math.floor(t * 8) % 2] : c.norm[0];
+        const hop = sel ? Math.round(Math.abs(Math.sin(t * 5)) * -6) : 0;
+        ctx.drawImage(frame, 0, 0, 16, 13, x0 + (SLOT_W - 8) / 2 - 24, SLOT_Y + 22 + hop, 48, 39);
+        text(c.name, x0 + (SLOT_W - 8) / 2, SLOT_Y + SLOT_H - 18, 8, sel ? "#ffd23f" : "#b9a3d6", "center");
+      });
+      if (Math.floor(t * 2) % 2 === 0) text("TAP ONE TO PLAY", W / 2, 164, 8, "#f6e7c8", "center");
+      text("< >  TO CHOOSE   SPACE TO GO", W / 2, 184, 8, "#b9a3d6", "center");
     }
     if (state === "over") {
       R(ctx, 0, 0, W, H, "rgba(18,9,31,0.55)");
@@ -887,12 +951,23 @@ button .val { color: var(--gold); }
       if (e.target.tagName === "BUTTON" && e.code !== "ArrowUp") return;
       e.preventDefault();
       if (!e.repeat) press();
+    } else if ((e.code === "ArrowLeft" || e.code === "ArrowRight") && state === "select") {
+      e.preventDefault(); setChar(charIdx + (e.code === "ArrowLeft" ? -1 : 1)); sfx.select();
     } else if ((e.code === "ArrowLeft" || e.code === "ArrowRight") && state !== "play") {
       e.preventDefault(); cycleLevel(e.code === "ArrowLeft" ? -1 : 1);
     } else if (e.code === "KeyM") toggleSound();
   });
   window.addEventListener("keyup", e => { if (JUMP_KEYS.includes(e.code)) release(); });
-  cvs.addEventListener("pointerdown", e => { e.preventDefault(); press(); });
+  cvs.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    if (state === "select") {
+      const r = cvs.getBoundingClientRect();
+      const i = slotAt((e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height);
+      if (i >= 0) { setChar(i); held = true; startRun(); }
+      return;
+    }
+    press();
+  });
   window.addEventListener("pointerup", release);
   window.addEventListener("pointercancel", release);
   cvs.addEventListener("contextmenu", e => e.preventDefault());
@@ -903,7 +978,9 @@ button .val { color: var(--gold); }
     speedVal.textContent = SPEEDS[mode].label;
     soundVal.textContent = muted ? "OFF" : "ON";
     levelVal.textContent = L.label;
+    document.getElementById("charVal").textContent = CHARS[charIdx].name;
   }
+  document.getElementById("charBtn").addEventListener("click", e => { setChar(charIdx + 1); sfx.select(); e.currentTarget.blur(); });
   document.getElementById("levelBtn").addEventListener("click", e => { cycleLevel(1); e.currentTarget.blur(); });
   document.getElementById("speedBtn").addEventListener("click", e => {
     mode = mode === "gentle" ? "zoomy" : "gentle"; store.set("sqd-mode", mode);
