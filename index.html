@@ -146,7 +146,7 @@ button .val { color: var(--gold); }
     <button id="fsBtn" type="button">FULL SCREEN</button>
   </div>
 
-  <p class="hint"><b>Jump:</b> space bar, up arrow, or tap the screen. Hold for a bigger jump. Grab acorns for <b>+25</b>. <b>Levels:</b> the Autumn Wood, or a dash down Winchester High Street past the cathedral, the Great Hall, the Westgate and King Alfred.</p>
+  <p class="hint"><b>Jump:</b> space bar, up arrow, or tap the screen. Hold for a bigger jump. Grab acorns for <b>+25</b>. <b>Bounce on hedgehogs and swans</b> for +50, and chain bounces for more. Stumps, rocks, bollards, crates and walls still need jumping over. <b>Levels:</b> the Autumn Wood, or a dash down Winchester High Street past the cathedral, the Great Hall, the Westgate and King Alfred.</p>
 </div>
 
 <script>
@@ -244,10 +244,14 @@ button .val { color: var(--gold); }
   const acornSpr = sprite(["..D...", ".CCCC.", "CCCCCC", ".aaaa.", ".aaaa.", "..aa.."], { D: "#3b1d0e", C: "#6b3a1a", a: "#e0a945" });
 
   // ---------- obstacle drawing ----------
-  function drawHedge(x) { ctx.drawImage(hedgeSpr, 0, 0, 12, 8, Math.round(x), GY - 16, 24, 16); }
-  function drawSwan(x) {
-    const bob = Math.round(Math.sin(t * 6 + x * 0.1));
-    ctx.drawImage(swanSpr, 0, 0, 14, 11, Math.round(x), GY - 22 + bob, 28, 22);
+  function drawHedge(x, sq = 1) {
+    const h = Math.max(4, Math.round(16 * sq));
+    ctx.drawImage(hedgeSpr, 0, 0, 12, 8, Math.round(x) - (sq < 1 ? 3 : 0), GY - h, sq < 1 ? 30 : 24, h);
+  }
+  function drawSwan(x, sq = 1) {
+    const bob = sq < 1 ? 0 : Math.round(Math.sin(t * 6 + x * 0.1));
+    const h = Math.max(5, Math.round(22 * sq));
+    ctx.drawImage(swanSpr, 0, 0, 14, 11, Math.round(x) - (sq < 1 ? 3 : 0), GY - h + bob, sq < 1 ? 34 : 28, h);
   }
   function drawStump(o) {
     const x = Math.round(o.x), y = o.y;
@@ -477,8 +481,8 @@ button .val { color: var(--gold); }
       pick(score) {
         const r = Math.random();
         if (score > 250 && r < 0.15) return { type: "hedge2", w: 48, h: 16 };
-        if (r < 0.42) return { type: "stump", w: 18 + Math.floor(Math.random() * 4) * 2, h: 20 + Math.floor(Math.random() * 6) * 2 };
-        if (r < 0.72) return { type: "rock", w: 24 + Math.floor(Math.random() * 6) * 2, h: 14 + Math.floor(Math.random() * 3) * 2 };
+        if (r < 0.36) return { type: "stump", w: 18 + Math.floor(Math.random() * 4) * 2, h: 20 + Math.floor(Math.random() * 6) * 2 };
+        if (r < 0.62) return { type: "rock", w: 24 + Math.floor(Math.random() * 6) * 2, h: 14 + Math.floor(Math.random() * 3) * 2 };
         return { type: "hedge", w: 24, h: 16 };
       }
     },
@@ -491,10 +495,10 @@ button .val { color: var(--gold); }
       pick(score) {
         const r = Math.random();
         if (score > 250 && r < 0.12) return { type: "swan2", w: 56, h: 18 };
-        if (r < 0.18) return { type: "bollard", w: 10, h: 22 };
-        if (r < 0.3) return { type: "bollard2", w: 34, h: 22 };
-        if (r < 0.52) return Math.random() < 0.4 ? { type: "crate", w: 22, h: 30 } : { type: "crate", w: 22, h: 16 };
-        if (r < 0.75) return { type: "flint", w: 30 + Math.floor(Math.random() * 6) * 2, h: 14 + Math.floor(Math.random() * 2) * 2 };
+        if (r < 0.15) return { type: "bollard", w: 10, h: 22 };
+        if (r < 0.25) return { type: "bollard2", w: 34, h: 22 };
+        if (r < 0.45) return Math.random() < 0.4 ? { type: "crate", w: 22, h: 30 } : { type: "crate", w: 22, h: 16 };
+        if (r < 0.64) return { type: "flint", w: 30 + Math.floor(Math.random() * 6) * 2, h: 14 + Math.floor(Math.random() * 2) * 2 };
         return { type: "swan", w: 28, h: 18 };
       }
     }
@@ -504,14 +508,12 @@ button .val { color: var(--gold); }
     switch (o.type) {
       case "stump": drawStump(o); break;
       case "rock": drawRock(o); break;
-      case "hedge": drawHedge(o.x); break;
-      case "hedge2": drawHedge(o.x); drawHedge(o.x + 24); break;
+      case "hedge": drawHedge(o.x, o.dead ? 0.35 : 1); break;
       case "bollard": drawBollard(o.x); break;
       case "bollard2": drawBollard(o.x); drawBollard(o.x + 24); break;
       case "crate": drawCrate(o); break;
       case "flint": drawFlintWall(o); break;
-      case "swan": drawSwan(o.x); break;
-      case "swan2": drawSwan(o.x); drawSwan(o.x + 28); break;
+      case "swan": drawSwan(o.x, o.dead ? 0.35 : 1); break;
     }
   }
 
@@ -543,6 +545,7 @@ button .val { color: var(--gold); }
     jump: () => beep(320, 640, 0.12),
     acorn: () => { beep(880, 1320, 0.07); beep(1320, 1760, 0.08, "square", 0.05, 0.07); },
     crash: () => beep(220, 50, 0.45, "sawtooth", 0.08),
+    stomp: () => { beep(260, 120, 0.08, "square", 0.07); beep(700, 1400, 0.12, "square", 0.05, 0.06); },
     milestone: () => { beep(660, 660, 0.06, "square", 0.04); beep(990, 990, 0.08, "square", 0.04, 0.07); },
     select: () => beep(520, 780, 0.06, "square", 0.04)
   };
@@ -550,7 +553,7 @@ button .val { color: var(--gold); }
   // ---------- game state ----------
   let state = "title", t = 0, overT = 0, shake = 0, bannerT = 0;
   let speed = SPEEDS[mode].start, score = 0, acornsGot = 0, nextMilestone = 100, newHi = false, flash = 0;
-  let obstacles = [], acorns = [], floats = [];
+  let obstacles = [], acorns = [], floats = [], stars = [], combo = 0, stomps = 0;
   let obsDist = 0, acornDist = 0;
   let scrollFar = 0, scrollMid = 0, scrollGround = 0;
   let held = false;
@@ -575,7 +578,7 @@ button .val { color: var(--gold); }
 
   function reset() {
     speed = SPEEDS[mode].start; score = 0; acornsGot = 0; nextMilestone = 100; newHi = false;
-    obstacles = []; acorns = []; floats = [];
+    obstacles = []; acorns = []; floats = []; stars = []; combo = 0; stomps = 0;
     obsDist = 180; acornDist = 260;
     player.y = GY - 26; player.vy = 0; player.onGround = true; player.buffer = 0;
   }
@@ -624,17 +627,22 @@ button .val { color: var(--gold); }
     if (player.buffer > 0 && player.onGround) {
       player.vy = JUMP_V; player.onGround = false; player.buffer = 0; sfx.jump();
     }
+    const prevY = player.y;
     if (!player.onGround) {
       if (!held && player.vy < CUT_V) player.vy = CUT_V;
       player.vy += GRAV * dt;
       player.y += player.vy * dt;
-      if (player.y >= GY - 26) { player.y = GY - 26; player.vy = 0; player.onGround = true; }
+      if (player.y >= GY - 26) { player.y = GY - 26; player.vy = 0; player.onGround = true; combo = 0; }
     }
     player.animT += dt * speed / 160;
 
     obsDist -= dx;
     if (obsDist <= 0) {
-      const o = L.pick(score); o.x = W + 10; o.y = GY - o.h; obstacles.push(o);
+      const o = L.pick(score);
+      const add = (type, w, h, x) => obstacles.push({ type, w, h, x, y: GY - h, creature: type === "swan" || type === "hedge", walk: type === "swan" ? 26 : type === "hedge" ? 16 : 0 });
+      if (o.type === "hedge2") { add("hedge", 24, 16, W + 10); add("hedge", 24, 16, W + 34); }
+      else if (o.type === "swan2") { add("swan", 28, 18, W + 10); add("swan", 28, 18, W + 38); }
+      else add(o.type, o.w, o.h, W + 10);
       obsDist = (speed * (0.85 + Math.random() * 0.85) + 70) * cfg.gap;
     }
     acornDist -= dx;
@@ -646,16 +654,31 @@ button .val { color: var(--gold); }
 
     const box = { x: player.x + 14, y: player.y + 4, w: 16, h: 20 };
     for (const o of obstacles) {
-      o.x -= dx;
-      if (hit(box, { x: o.x + 2, y: o.y + 2, w: o.w - 4, h: o.h - 2 })) { gameOver(); return; }
+      o.x -= dx + (o.dead ? 0 : o.walk * dt);
+      if (o.dead) { o.deadT += dt; continue; }
+      if (!hit(box, { x: o.x + 2, y: o.y + 2, w: o.w - 4, h: o.h - 2 })) continue;
+      if (o.creature && player.vy > 0 && prevY + 24 <= o.y + 12) {
+        o.dead = true; o.deadT = 0;
+        combo++; stomps++;
+        const pts = 50 * Math.min(4, 2 ** (combo - 1));
+        score += pts;
+        player.y = o.y - 24; player.vy = held ? JUMP_V : -430;
+        sfx.stomp();
+        floats.push({ x: o.x, y: o.y - 10, life: 0.9, txt: "+" + pts + (combo > 1 ? " x" + combo : "") });
+        for (let k = 0; k < 10; k++) stars.push({ x: o.x + o.w / 2, y: o.y + 4, vx: (Math.random() - 0.5) * 160, vy: -60 - Math.random() * 120, life: 0.5 + Math.random() * 0.3 });
+        continue;
+      }
+      gameOver(); return;
     }
-    obstacles = obstacles.filter(o => o.x + o.w > -10);
+    obstacles = obstacles.filter(o => o.x + o.w > -10 && !(o.dead && o.deadT > 0.45));
+    for (const st of stars) { st.x += st.vx * dt - dx; st.y += st.vy * dt; st.vy += 400 * dt; st.life -= dt; }
+    stars = stars.filter(st => st.life > 0);
 
     for (const a of acorns) {
       a.x -= dx;
       if (!a.got && hit(box, { x: a.x, y: a.y, w: 12, h: 12 })) {
         a.got = true; acornsGot++; score += 25; sfx.acorn();
-        floats.push({ x: a.x, y: a.y, life: 0.8 });
+        floats.push({ x: a.x, y: a.y, life: 0.8, txt: "+25" });
       }
     }
     acorns = acorns.filter(a => !a.got && a.x > -14);
@@ -704,7 +727,8 @@ button .val { color: var(--gold); }
       const c = L.leaves[l.i % L.leaves.length];
       R(ctx, Math.round(l.x), Math.round(l.y), 3, 2, c); R(ctx, Math.round(l.x) + 1, Math.round(l.y) + 2, 1, 1, c);
     }
-    for (const f of floats) text("+25", Math.round(f.x), Math.round(f.y), 8, "#ffd23f");
+    for (const st of stars) R(ctx, Math.round(st.x), Math.round(st.y), 2, 2, st.life > 0.3 ? "#fff3b0" : "#ffd23f");
+    for (const f of floats) text(f.txt, Math.round(f.x), Math.round(f.y), 8, "#ffd23f");
     ctx.restore();
 
     if (state !== "title") {
@@ -731,7 +755,7 @@ button .val { color: var(--gold); }
       R(ctx, 0, 0, W, H, "rgba(18,9,31,0.55)");
       text("GAME OVER", W / 2, 50, 16, "#ff8a2a", "center", "#5a1a10");
       text("SCORE " + Math.floor(score), W / 2, 82, 8, "#f6e7c8", "center");
-      text("ACORNS " + acornsGot, W / 2, 96, 8, "#e0a945", "center");
+      text("ACORNS " + acornsGot + "   BOINGS " + stomps, W / 2, 96, 8, "#e0a945", "center");
       if (newHi) text("NEW HIGH SCORE!", W / 2, 114, 8, Math.floor(t * 6) % 2 ? "#ffd23f" : "#ff8a2a", "center");
       if (overT > 0.6 && Math.floor(t * 2) % 2 === 0) text("TAP TO RUN AGAIN", W / 2, 140, 8, "#f6e7c8", "center");
     }
