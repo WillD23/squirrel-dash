@@ -24,10 +24,21 @@ Inspired by Mark Rober's squirrel obstacle courses. Drag pieces onto the screen 
 - **The squirrel** runs right on its own, hops up single steps, turns round at taller walls and falls if there is nothing underneath.
 - **Levels:** Free build (drag the squirrel and walnut anywhere, saved in the browser) plus four challenges with limited pieces: Gap, Cliff, Boing and Sky nut.
 
+## Squirrel Skydive
+
+Squirrels can fall from almost any height and be fine, so this squirrel jumps out of a plane. Steer it down through 2,500 m of sky.
+
+- **Controls:** left and right arrows to steer, up (or space) to glide slowly, down to dive fast. On a phone or tablet use the buttons under the game, or hold either side of the screen.
+- **Dodge:** birds and storm clouds up high, hot air balloons in the middle, kites near the ground. Drones join in from jump 2.
+- **Hearts:** 3 hearts, with a short flashing safe time after each bump. A golden acorn gives a heart back.
+- **Acorns:** +10 points each.
+- **Landing:** a bouncing arrow marks the leaf pile. A perfect landing in the pile is +500, a near miss +250, and every finished jump +200. Each jump falls a little faster than the last.
+
 ## Running it
 
 - `index.html`: the game menu
 - `dash.html`: Squirrel Dash
 - `course.html`: Squirrel Course Builder
+- `skydive.html`: Squirrel Skydive
 
 Each game is a single file. Open any of them in a web browser, or play online through GitHub Pages.

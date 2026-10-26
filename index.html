@@ -18,6 +18,7 @@
   --gold: #ffd23f;
   --leaf: #6ad14f;
   --edge: #3a2457;
+  --sky: #6cc4ff;
   --font-display: "Press Start 2P", "Courier New", monospace;
   --font-body: "VT323", "Courier New", monospace;
   color-scheme: dark;
@@ -61,6 +62,8 @@ h1 {
 .game p { margin: 0; color: var(--muted); }
 .play { font-family: var(--font-display); font-size: 11px; justify-self: start; padding: 10px 14px; color: #12091f; background: var(--gold); border: 3px solid #0a0512; }
 .course .play { background: var(--leaf); }
+.sky h2 { color: var(--sky); }
+.sky .play { background: var(--sky); }
 @media (prefers-reduced-motion: reduce) { .blink { animation: none; } .game { transition: none; } }
 </style>
 </head>
@@ -83,6 +86,12 @@ h1 {
       <h2>SQUIRREL COURSE BUILDER</h2>
       <p>Build an obstacle course with ramps, trees, springs and fans, then watch the squirrel race to the walnut.</p>
       <span class="play">BUILD &#9654;</span>
+    </a>
+    <a class="game sky" href="skydive.html">
+      <canvas id="p-sky" width="160" height="90" aria-hidden="true"></canvas>
+      <h2>SQUIRREL SKYDIVE</h2>
+      <p>Jump out of a plane, dodge birds, balloons and storm clouds, grab the acorns and land in the leaf pile.</p>
+      <span class="play">JUMP &#9654;</span>
     </a>
   </div>
 </main>
@@ -120,6 +129,16 @@ h1 {
   R(c, 104, 40, 42, 5, "#5e3a1c"); R(c, 104, 40, 42, 2, "#b0743f"); R(c, 140, 45, 4, 3, "#4fb03e");
   spr(c, NUT, NP, 128, 30, 1);
   spr(c, SQ, SQP, 6, 54, 2);
+
+  // Skydive: banded sky, plane, clouds, a balloon and a falling squirrel
+  const s = document.getElementById("p-sky").getContext("2d");
+  ["#2b3f9e", "#3a58b8", "#4a72cc", "#5c8fe0", "#78acec", "#96c8f4"].forEach((col, i) => R(s, 0, i * 15, 160, 15, col));
+  R(s, 10, 22, 22, 5, "#fff"); R(s, 14, 19, 12, 3, "#fff"); R(s, 112, 58, 28, 6, "#fff"); R(s, 118, 54, 14, 4, "#fff");
+  R(s, 92, 8, 34, 7, "#ece6d4"); R(s, 92, 13, 34, 2, "#e8344e"); R(s, 88, 3, 5, 7, "#e8344e"); R(s, 126, 9, 3, 5, "#c9c2ad"); R(s, 116, 9, 4, 2, "#8fdcff"); R(s, 102, 15, 12, 2, "#b3ab94");
+  R(s, 28, 52, 14, 12, "#e8344e"); R(s, 32, 50, 6, 16, "#ffd23a"); R(s, 32, 66, 6, 4, "#8a5a2b");
+  R(s, 132, 74, 4, 1, "#1d1a28"); R(s, 136, 73, 3, 1, "#1d1a28"); R(s, 139, 74, 3, 1, "#1d1a28");
+  spr(s, NUT, NP, 108, 70, 1);
+  s.save(); s.translate(78, 52); s.rotate(Math.PI / 2); spr(s, SQ, SQP, -14, -11, 2); s.restore();
 })();
 </script>
 </body>
