@@ -84,7 +84,7 @@ html,body{margin:0}*,*::before,*::after{box-sizing:border-box}[hidden]{display:n
     <button class="px" id="clear">Take back pieces</button>
     <button class="px" id="sound">Sound: on</button>
   </div>
-  <p class="help">Drag a piece from the box onto the screen, or tap a piece then tap the screen. Use Move to drag pieces around (drag one off the screen to put it back). The squirrel runs right, hops up single steps, climbs trees, bounces on springs and rides fans. Big walls make it turn round.</p>
+  <p class="help">Drag a piece from the box onto the screen, or tap a piece then tap the screen. Use Move to drag pieces around (drag one off the screen to put it back). The squirrel runs right, hops up single steps, climbs trees, bounces on springs and rides fans. It grabs a zipline post and whizzes to the next post, gets fired from cannons, and pops out of the matching log tunnel. Seesaws tip when it walks past the middle. Big walls make it turn round, and brambles are prickly!</p>
 </div>
 <div id="ghost" hidden><canvas width="44" height="44"></canvas></div>
 
@@ -93,9 +93,11 @@ html,body{margin:0}*,*::before,*::after{box-sizing:border-box}[hidden]{display:n
 const T=40, COLS=16, ROWS=10, W=COLS*T, H=ROWS*T;
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
 const SAVE='sqcourse-free', DONE='sqcourse-done';
-const NAMES={hand:'Move',erase:'Eraser',branch:'Branch',rampUp:'Ramp up',rampDown:'Ramp down',box:'Crate',trunk:'Tree',spring:'Spring',fan:'Fan',ground:'Grass'};
-const ALL=['branch','rampUp','rampDown','box','trunk','spring','fan','ground'];
-const FULL=new Set(['ground','box','fan','spring']);
+const NAMES={hand:'Move',erase:'Eraser',branch:'Branch',rampUp:'Ramp up',rampDown:'Ramp down',box:'Crate',trunk:'Tree',spring:'Spring',fan:'Fan',ground:'Grass',
+  zip:'Zipline',seesaw:'Seesaw',cannon:'Cannon',tunnel:'Log tunnel',thorns:'Brambles'};
+const ALL=['branch','rampUp','rampDown','box','trunk','spring','fan','ground','zip','seesaw','cannon','tunnel','thorns'];
+const NO_SURF=new Set(['zip','cannon','thorns']);
+const FULL=new Set(['ground','box','fan','spring','hedge']);
 
 const E='................';
 const LEVELS=[
@@ -109,6 +111,16 @@ const LEVELS=[
   map:[E,E,E,E,'..............N.','..........GGGGGG','..........GGGGGG','..........GGGGGG','.S........GGGGGG','GGGGGGGGG.GGGGGG']},
  {id:'4',name:'4 Sky nut',hint:'The walnut is on a branch way up high. Whoosh!',inv:{fan:1,trunk:2,spring:1},
   map:[E,E,'............N...','........bbbbbb..',E,E,E,E,'.S..............','GGGGGGGG.GGGGGGG']},
+ {id:'5',name:'5 Zipline',hint:'A big prickly gap! Put a zipline post on the cliff and another by the walnut.',inv:{zip:2},
+  map:[E,E,'.S..............','GGGG............','GGGG............','GGGG............','GGGG............','GGGG............','GGGG..........N.','GGGGXXXXXXXXXGGG']},
+ {id:'6',name:'6 Seesaw',hint:'A seesaw tips when the squirrel walks past the middle. Cross both gaps!',inv:{seesaw:2},
+  map:[E,E,E,E,E,E,E,E,'.S............N.','GGGGG...GG...GGG']},
+ {id:'7',name:'7 Cannon',hint:'Too prickly to walk across. Fire the squirrel out of a cannon! Where should it go?',inv:{cannon:1},
+  map:[E,E,E,E,E,E,E,E,'.S............N.','GGGGGXXXXGGGGGGG']},
+ {id:'8',name:'8 Hedge',hint:'The walnut is shut inside a hedge. A squirrel that goes into one log tunnel pops out of the other.',inv:{tunnel:2},
+  map:[E,E,E,'..........HHHHHH','..........H....H','..........H....H','..........H....H','..........H....H','.S........H..N.H','GGGGGGGGGGGGGGGG']},
+ {id:'9',name:'9 Grand course',hint:'The big one! Get up onto the branch, whizz down, then tip across the last gap.',inv:{spring:1,cannon:1,zip:2,seesaw:1},
+  map:[E,E,E,E,'...bbbb.........',E,E,E,'.S.............N','GGGXXXXXXXGG...G']},
 ];
 
 let li=0, cells, start, goal, inv, mode='edit', sq=null, tool='hand', time=0;
@@ -212,7 +224,49 @@ function drawTile(g,t,x,y,o={}){
     else for(let i=0;i<6;i++){ R(g,x+8+i*4,y+8+i*4,4,4,col); R(g,x+28-i*4,y+8+i*4,4,4,col); }
     R(g,x+16,y+16,8,8,'#f29a2e');
     break;}
+  case 'hedge':{
+    R(g,x,y,T,T,'#2f7a32');
+    const seed=c*5+r*11;
+    for(let i=0;i<6;i++) R(g,x+((seed+i*7)%8)*4+2,y+((seed*3+i*5)%8)*4+2,6,6,i%2?'#3f9a3c':'#256329');
+    if(typeAt(c,r-1)!=='hedge'){ R(g,x,y,T,4,'#5cc24a'); R(g,x+6,y-2,8,2,'#5cc24a'); R(g,x+24,y-2,10,2,'#5cc24a'); }
+    break;}
+  case 'thorns':
+    R(g,x+2,y+14,36,26,'#3b5a2a'); R(g,x+6,y+8,28,8,'#3b5a2a');
+    for(let i=0;i<5;i++){ R(g,x+4+i*8,y+4+(i%2)*6,2,6,'#c9d6a0'); R(g,x+2+i*8,y+20+(i%2)*8,2,4,'#c9d6a0'); }
+    R(g,x+10,y+18,6,6,'#7b2d6b'); R(g,x+24,y+26,6,6,'#7b2d6b'); R(g,x+18,y+12,4,4,'#a8327f');
+    R(g,x+11,y+19,2,2,'#e9b4dd'); R(g,x+25,y+27,2,2,'#e9b4dd');
+    break;
+  case 'zip':
+    R(g,x+10,y+34,20,6,'#553419');
+    R(g,x+16,y+4,8,32,'#7b4f2a'); R(g,x+16,y+4,2,32,'#a06a3a');
+    R(g,x+12,y+2,16,6,'#4b5563'); R(g,x+14,y,12,2,'#9ca3af'); R(g,x+18,y+3,4,4,'#e5e7eb');
+    break;
+  case 'cannon':{
+    const f=o.face||1, P=(dx,dy,w,h,col)=>R(g,f>0?x+dx:x+T-dx-w,y+dy,w,h,col);
+    for(let i=0;i<6;i++) P(6+i*4,22-i*4,12,12,i===5?'#1f2937':'#374151');
+    P(28,2,10,10,'#111827'); P(30,4,6,6,'#000');
+    for(let i=0;i<5;i++) P(8+i*4,22-i*4,4,2,'#6b7280');
+    P(4,26,18,14,'#7a4e24'); P(8,30,10,6,'#c58a4a'); P(12,32,2,2,'#3a2410');
+    P(22,34,14,6,'#5e3a1c');
+    break;}
+  case 'tunnel':{
+    const pc=['#f29a2e','#7ec8f0','#f472b6','#ffe066'][(o.pair||0)%4];
+    R(g,x+2,y+6,36,34,'#7b4f2a'); R(g,x+2,y+6,36,4,'#a06a3a'); R(g,x+2,y+36,36,4,'#553419');
+    R(g,x+6,y+12,28,24,'#e2b574'); R(g,x+10,y+16,20,16,'#b98a4c');
+    R(g,x+12,y+18,16,12,'#140b06');
+    R(g,x+16,y+8,8,4,pc);
+    break;}
   }
+}
+function drawSeesaw(g,x,y,tilt,alpha){
+  // x,y is the centre cell; the plank spans one cell either side
+  R(g,x+12,y+34,16,6,'#4b5563');
+  for(let i=0;i<4;i++) R(g,x+14+i*1,y+22+i*3,12-i*2,3,'#9ca3af');
+  for(let px=-40;px<80;px+=4){
+    const yy=Math.round(y+T/2+tilt*(px+2-T/2)/3);
+    R(g,x+px,yy,4,6,'#c98a44'); R(g,x+px,yy,4,2,'#f0bb6e');
+  }
+  R(g,x+17,y+T/2-1,6,6,'#ef4444');
 }
 function drawIcon(g,t){
   g.clearRect(0,0,44,44); g.imageSmoothingEnabled=false;
@@ -228,6 +282,13 @@ function drawIcon(g,t){
     drawSquirrel(g,20,36,1,0,false);
   } else if(t==='goal'){
     sprite(g,NUT,NUT_PAL,8,8,3,false);
+  } else if(t==='seesaw'){
+    R(g,16,30,10,10,'#9ca3af'); R(g,12,36,18,4,'#4b5563');
+    for(let px=0;px<40;px+=4){ const yy=Math.round(14+(40-px)*0.35); R(g,px,yy,4,5,'#c98a44'); R(g,px,yy,4,2,'#f0bb6e'); }
+    R(g,18,22,6,6,'#ef4444');
+  } else if(t==='zip'){
+    drawTile(g,'zip',-6,0,{});
+    for(let i=0;i<8;i++) R(g,16+i*3,4+i*3,3,3,'#e5e7eb');
   } else drawTile(g,t,0,0,{c:1,r:1,top:true});
   g.restore();
 }
@@ -240,7 +301,12 @@ function loadLevel(i){
   let saved=null;
   if(L.free){ try{ saved=JSON.parse(localStorage.getItem(SAVE)); }catch(e){ saved=null; } }
   if(saved&&saved.cells&&saved.start&&saved.goal){
-    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){ const t=saved.cells[r]&&saved.cells[r][c]; if(t) cells[r][c]={t,fixed:false}; }
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      const t=saved.cells[r]&&saved.cells[r][c];
+      if(!t||!NAMES[t]||cells[r][c]) continue;
+      if(t==='seesaw'){ if(seesawFits(c,r)) putSeesaw(c,r,false); }
+      else cells[r][c]={t,fixed:false};
+    }
     start=saved.start; goal=saved.goal;
   } else parseMap(L);
   inv=L.inv?{...L.inv}:null;
@@ -251,7 +317,7 @@ function loadLevel(i){
 }
 function parseMap(L){
   L.map.forEach((row,r)=>[...row].forEach((ch,c)=>{
-    const t={G:'ground',b:'branch',B:'box'}[ch];
+    const t={G:'ground',b:'branch',B:'box',X:'thorns',H:'hedge',z:'zip',T:'trunk'}[ch];
     if(t) cells[r][c]={t,fixed:!L.free};
     if(ch==='S') start={c,r};
     if(ch==='N') goal={c,r};
@@ -259,8 +325,31 @@ function parseMap(L){
 }
 function saveFree(){
   if(!LEVELS[li].free) return;
-  try{ localStorage.setItem(SAVE,JSON.stringify({cells:cells.map(row=>row.map(x=>x?x.t:0)),start,goal})); }catch(e){}
+  try{ localStorage.setItem(SAVE,JSON.stringify({cells:cells.map(row=>row.map(x=>x&&!x.of?x.t:0)),start,goal})); }catch(e){}
 }
+
+/* ---------- multi-cell seesaw ---------- */
+// The seesaw lives in its middle cell; the cells either side hold a 'seePart' that points back to it.
+function seesawFits(c,r){ return c>0&&c<COLS-1&&[c-1,c,c+1].every(cc=>canPlace(cc,r)&&!cells[r][cc]); }
+function putSeesaw(c,r,fixed){
+  cells[r][c]={t:'seesaw',fixed,tilt:-1,target:-1};
+  cells[r][c-1]={t:'seePart',fixed,of:[c,r]}; cells[r][c+1]={t:'seePart',fixed,of:[c,r]};
+}
+function mainOf(c,r){
+  const x=cells[r]&&cells[r][c]; if(!x) return null;
+  if(x.of) return {c:x.of[0],r:x.of[1],cell:cells[x.of[1]][x.of[0]]};
+  return {c,r,cell:x};
+}
+// Removes the whole piece at a cell, refunds it to the box and returns where its main cell was.
+function removePiece(c,r){
+  const m=mainOf(c,r); if(!m||m.cell.fixed) return null;
+  if(m.cell.t==='seesaw'){ cells[m.r][m.c-1]=null; cells[m.r][m.c+1]=null; }
+  cells[m.r][m.c]=null;
+  if(inv&&inv[m.cell.t]!==undefined) inv[m.cell.t]++;
+  return {c:m.c,r:m.r,t:m.cell.t};
+}
+function eachCell(fn){ for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(cells[r][c]) fn(cells[r][c],c,r); }
+function resetSeesaws(){ eachCell(x=>{ if(x.t==='seesaw'){ x.tilt=-1; x.target=-1; } }); }
 
 /* ---------- UI ---------- */
 const nav=document.getElementById('levels'), tray=document.getElementById('tray');
@@ -316,13 +405,19 @@ function place(c,r,t,quiet){
   const old=cells[r][c];
   if(old&&old.t===t) return false;
   if(inv&&inv[t]<=0){ if(!quiet) status('No '+NAMES[t].toLowerCase()+' pieces left. Take one back with Move or Eraser.'); return false; }
-  if(old&&inv&&inv[old.t]!==undefined) inv[old.t]++;
-  cells[r][c]={t,fixed:false}; if(inv) inv[t]--;
+  if(t==='seesaw'){
+    if(!seesawFits(c,r)){ if(!quiet) status('A seesaw needs 3 empty spaces side by side.'); return false; }
+    putSeesaw(c,r,false);
+  } else {
+    if(old&&old.t!=='seesaw'&&!old.of) removePiece(c,r);
+    else if(old){ if(!quiet) status('Move the seesaw out of the way first.'); return false; }
+    cells[r][c]={t,fixed:false};
+  }
+  if(inv) inv[t]--;
   tone(660,0.05,'square',880,0.04); updateTray(); saveFree(); return true;
 }
 function erase(c,r){
-  const x=cells[r]&&cells[r][c]; if(!x||x.fixed) return;
-  cells[r][c]=null; if(inv&&inv[x.t]!==undefined) inv[x.t]++;
+  if(!removePiece(c,r)) return;
   tone(300,0.06,'square',180,0.04); updateTray(); saveFree();
 }
 function cellFromEvent(e){
@@ -353,11 +448,10 @@ cv.addEventListener('pointerdown',e=>{
   if(tool==='hand'){
     if(L.free&&start.c===c&&start.r===r){ drag={kind:'start',from:'cell',c,r,sx:e.clientX,sy:e.clientY,moved:false}; return; }
     if(L.free&&goal.c===c&&goal.r===r){ drag={kind:'goal',from:'cell',c,r,sx:e.clientX,sy:e.clientY,moved:false}; return; }
-    const x=cells[r][c];
-    if(x&&!x.fixed){
-      cells[r][c]=null; if(inv&&inv[x.t]!==undefined) inv[x.t]++;
-      drag={kind:x.t,from:'cell',c,r,sx:e.clientX,sy:e.clientY,moved:false};
-      showGhost(x.t,e); updateTray();
+    const got=removePiece(c,r);
+    if(got){
+      drag={kind:got.t,from:'cell',c:got.c,r:got.r,sx:e.clientX,sy:e.clientY,moved:false};
+      showGhost(got.t,e); updateTray();
     } else status('Pick a piece from the box below.');
     return;
   }
@@ -407,13 +501,75 @@ function computeStreams(){
   }
 }
 function go(){
-  computeStreams(); parts=[]; springAnim.clear();
-  sq={x:start.c*T+T/2,y:(start.r+1)*T,dir:1,vy:0,onGround:false,climbing:false,floating:false,fanCool:0,t:0,anim:0,hasNut:false};
+  computeStreams(); parts=[]; springAnim.clear(); resetSeesaws();
+  sq={x:start.c*T+T/2,y:(start.r+1)*T,dir:1,vx:0,vy:0,onGround:false,climbing:false,floating:false,flying:false,
+      zip:null,hidden:0,hideAt:null,ignore:null,fanCool:0,t:0,anim:0,hasNut:false};
   mode='run'; updateButtons(); status('');
   tone(392,0.08,'square',null,0.05); tone(523,0.12,'square',null,0.05,0.09);
 }
-function editMode(){ mode='edit'; sq=null; parts=[]; updateButtons(); }
+function editMode(){ mode='edit'; sq=null; parts=[]; resetSeesaws(); updateButtons(); }
+
+/* zipline posts link to the nearest post in the direction of travel */
+function zipPartner(c,r,dir){
+  let best=null;
+  eachCell((x,pc,pr)=>{
+    if(x.t!=='zip'||dir*(pc-c)<=0) return;
+    const dc=Math.abs(pc-c), dr=Math.abs(pr-r);
+    if(!best||dc<best.dc||(dc===best.dc&&dr<best.dr)) best={c:pc,r:pr,dc,dr};
+  });
+  return best;
+}
+/* log tunnels pair up left to right: 1st with 2nd, 3rd with 4th */
+function tunnelList(){ const l=[]; eachCell((x,c,r)=>{ if(x.t==='tunnel') l.push({c,r}); }); return l.sort((a,b)=>a.c-b.c||a.r-b.r); }
+function tunnelPartner(c,r){ const l=tunnelList(), i=l.findIndex(p=>p.c===c&&p.r===r); return i<0?null:l[i^1]||null; }
+
+function startZip(c,r,to){
+  const s=sq, x0=c*T+T/2, y0=r*T+4, x1=to.c*T+T/2, y1=to.r*T+4;
+  s.zip={x0,y0,x1,y1,len:Math.hypot(x1-x0,y1-y0),d:0,to};
+  s.flying=false; s.onGround=false; s.vy=0;
+  tone(1100,0.7,'sawtooth',500,0.025);
+}
+function rideZip(dt){
+  const s=sq, z=s.zip;
+  z.d+=(200+160*Math.max(0,(z.y1-z.y0)/z.len))*dt;
+  if(z.d>=z.len){
+    const at=z.to, nxt=zipPartner(at.c,at.r,s.dir);
+    if(nxt){ startZip(at.c,at.r,nxt); return; }
+    s.zip=null; s.x=z.x1+s.dir*2; s.y=z.y1+36; s.vy=0; s.onGround=false; s.ignore=at.c+','+at.r;
+    return;
+  }
+  const f=z.d/z.len; s.x=z.x0+(z.x1-z.x0)*f; s.y=z.y0+(z.y1-z.y0)*f+36;
+}
+function triggers(){
+  const s=sq, c=colOf(s.x), r=rowOf(s.y-16), key=c+','+r, t=typeAt(c,r);
+  if(s.ignore&&s.ignore!==key) s.ignore=null;
+  if(!t||s.ignore===key||Math.abs(s.x-(c*T+T/2))>10) return false;
+  if(t==='zip'){ const to=zipPartner(c,r,s.dir); if(!to) return false; startZip(c,r,to); return true; }
+  if(t==='cannon'){
+    s.hidden=0.5; s.hideAt={c,r,t}; cells[r][c].face=s.dir; s.x=c*T+T/2; s.zip=null;
+    tone(260,0.12,'square',180,0.05); return true;
+  }
+  if(t==='tunnel'){
+    const to=tunnelPartner(c,r); if(!to) return false;
+    s.hidden=0.55; s.hideAt={c,r,t,to}; tone(520,0.35,'sine',130,0.1); return true;
+  }
+  return false;
+}
+function popOut(){
+  const s=sq, h=s.hideAt; s.hideAt=null;
+  if(h.t==='cannon'){
+    s.x=h.c*T+T/2; s.y=h.r*T+T-6; s.vx=s.dir*300; s.vy=-720; s.flying=true; s.onGround=false; s.ignore=h.c+','+h.r;
+    tone(110,0.45,'sawtooth',35,0.14); tone(60,0.3,'square',30,0.08);
+    puff(s.x+s.dir*18,h.r*T+6,14,['#9ca3af','#e5e7eb','#f29a2e','#ffe066']);
+  } else {
+    s.x=h.to.c*T+T/2; s.y=(h.to.r+1)*T-2; s.vy=-260; s.onGround=false; s.flying=false; s.ignore=h.to.c+','+h.to.r;
+    tone(300,0.15,'square',800,0.06); puff(s.x,s.y-20,8,['#b98a4c','#e2b574']);
+  }
+}
 function surf(t,c,r,x){
+  if(NO_SURF.has(t)) return null;
+  if(t==='tunnel') return r*T+8;
+  if(t==='seesaw'||t==='seePart'){ const m=mainOf(c,r); return m.r*T+T/2+m.cell.tilt*(x-(m.c*T+T/2))/3; }
   const f=Math.min(1,Math.max(0,(x-c*T)/T));
   if(t==='rampUp') return (r+1)*T-f*T;
   if(t==='rampDown') return r*T+f*T;
@@ -437,7 +593,7 @@ function blockedAt(x,y){
   for(const r of [fr,hr]){
     const t=typeAt(c,r); if(!t) continue;
     if(isFull(t)&&r*T<y-14) return true;
-    if(r===fr&&(t==='rampUp'||t==='rampDown')&&surf(t,c,r,x)<y-14) return true;
+    if(r===fr&&(t==='rampUp'||t==='rampDown'||t==='seesaw'||t==='seePart')&&surf(t,c,r,x)<y-14) return true;
   }
   return false;
 }
@@ -447,6 +603,12 @@ function puff(x,y,n,cols){
 function step(dt){
   const s=sq; s.t+=dt; s.anim+=dt; if(s.fanCool>0) s.fanCool-=dt;
   if(s.t>30){ fail('PHEW! SO TIRED','The squirrel ran out of puff. Try a new route.'); return; }
+  eachCell(x=>{
+    if(x.t!=='seesaw'||x.tilt===x.target) return;
+    const d=x.target-x.tilt, m=6*dt; x.tilt=Math.abs(d)<=m?x.target:x.tilt+Math.sign(d)*m;
+  });
+  if(s.hidden>0){ s.hidden-=dt; if(s.hidden<=0) popOut(); return; }
+  if(s.zip){ rideZip(dt); return post(); }
   const c=colOf(s.x);
   const top=streams.get(c+','+rowOf(s.y-10));
   if(!s.climbing&&top!==undefined&&s.fanCool<=0){
@@ -470,12 +632,13 @@ function step(dt){
     }
     return post();
   }
+  if(triggers()) return;
   // walk
-  let nx=s.x+s.dir*120*dt;
+  let nx=s.x+(s.flying?s.vx:s.dir*120)*dt;
   const front=nx+s.dir*12;
-  if(front<0||front>W){ s.dir*=-1; nx=s.x; }
+  if(front<0||front>W){ s.dir*=-1; nx=s.x; s.flying=false; }
   else if(blockedAt(front,s.y)){
-    nx=s.x;
+    nx=s.x; s.flying=false;
     if(s.onGround){
       if(!blockedAt(front,s.y-T)){ s.vy=-470; s.onGround=false; tone(520,0.08,'square',820,0.04); }
       else { s.dir*=-1; tone(180,0.08,'square',140,0.04); }
@@ -490,7 +653,11 @@ function step(dt){
   }
   const g=(s.onGround||s.vy>=0)?groundAt(s.x,py,ny,s.onGround):null;
   if(g){
-    s.y=g.y; s.vy=0; s.onGround=true;
+    s.y=g.y; s.vy=0; s.onGround=true; s.flying=false;
+    if(g.t==='seesaw'||g.t==='seePart'){
+      const m=mainOf(g.c,g.r), cx=m.c*T+T/2;
+      if(m.cell.target*(s.x-cx)<-6){ m.cell.target=-m.cell.target; tone(150,0.14,'square',90,0.08); puff(cx+20*m.cell.target,m.r*T+T/2+20,5,['#e3a861','#fff']); }
+    }
     if(g.t==='spring'){
       s.vy=-830; s.onGround=false; springAnim.set(g.c+','+g.r,0.35);
       tone(180,0.35,'sine',720,0.12); puff(s.x,s.y,6,['#fff','#e5e7eb']);
@@ -501,6 +668,9 @@ function step(dt){
 function post(){
   const s=sq; if(mode!=='run') return;
   if(s.y>H+50){ fail('OOPS!','The squirrel fell down. Build a safer path and try again.'); return; }
+  if(typeAt(colOf(s.x),rowOf(s.y-6))==='thorns'){
+    fail('OUCH! PRICKLY!','Brambles are spiky. Find a way over them.'); puff(s.x,s.y-10,8,['#d9772b','#7b2d6b']); return;
+  }
   const gx=goal.c*T+T/2, gy=goal.r*T+T/2;
   if(Math.hypot(s.x-gx,(s.y-16)-gy)<24) win();
 }
@@ -553,12 +723,27 @@ function draw(){
   }
   springAnim.forEach((v,k)=>{ v-=1/60; if(v<=0) springAnim.delete(k); else springAnim.set(k,v); });
   const ff=Math.floor(time*(mode==='edit'?5:14));
+  const tl=tunnelList(), pairOf=new Map(tl.map((p,i)=>[p.c+','+p.r,i>>1]));
   for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
-    const x=cells[r][c]; if(!x) continue;
-    const sa=springAnim.get(c+','+r)||0;
-    drawTile(ctx,x.t,c*T,r*T,{c,r,covered:typeAt(c,r-1)==='ground',top:typeAt(c,r-1)!=='trunk',k:sa>0?Math.sin(sa/0.35*Math.PI):0,f:ff});
+    const x=cells[r][c]; if(!x||x.t==='seePart') continue;
+    if(x.t==='seesaw') drawSeesaw(ctx,c*T,r*T,x.tilt);
+    else {
+      const sa=springAnim.get(c+','+r)||0;
+      drawTile(ctx,x.t,c*T,r*T,{c,r,covered:typeAt(c,r-1)==='ground',top:typeAt(c,r-1)!=='trunk',k:sa>0?Math.sin(sa/0.35*Math.PI):0,f:ff,face:x.face,pair:pairOf.get(c+','+r)});
+    }
     if(mode==='edit'&&!x.fixed&&!LEVELS[li].free){ ctx.fillStyle='#ffe066'; ctx.fillRect(c*T+2,r*T+2,4,4); }
   }
+  // a tunnel with no partner gets a question mark
+  if(tl.length%2===1){ const p=tl[tl.length-1]; ctx.fillStyle='#fbf3e4'; ctx.font='16px "Press Start 2P", monospace'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('?',p.c*T+T/2,p.r*T+26); }
+  // zipline ropes
+  const ropes=new Set();
+  eachCell((x,c,r)=>{
+    if(x.t!=='zip') return;
+    [1,-1].forEach(d=>{ const p=zipPartner(c,r,d); if(!p) return; const k=[Math.min(c,p.c),Math.max(c,p.c),d>0?r:p.r,d>0?p.r:r].join(); if(ropes.has(k)) return; ropes.add(k);
+      const x0=c*T+T/2, y0=r*T+4, x1=p.c*T+T/2, y1=p.r*T+4, n=Math.ceil(Math.hypot(x1-x0,y1-y0)/3);
+      for(let i=0;i<=n;i++){ const px=Math.round(x0+(x1-x0)*i/n), py=Math.round(y0+(y1-y0)*i/n); R(ctx,px-1,py,3,2,'#f3f4f6'); R(ctx,px-1,py+2,3,1,'#6b7280'); }
+    });
+  });
   // start flag
   if(mode==='edit'){
     const x=start.c*T, y=start.r*T;
@@ -577,12 +762,20 @@ function draw(){
     let ok;
     if(kind==='start'||kind==='goal') ok=!cells[hover.r][hover.c]&&!isMarker(hover.c,hover.r);
     else if(kind==='erase'){ const x=cells[hover.r][hover.c]; ok=!!(x&&!x.fixed); }
+    else if(kind==='seesaw') ok=seesawFits(hover.c,hover.r);
     else ok=canPlace(hover.c,hover.r);
-    if(dragging&&ok&&ALL.includes(kind)){ ctx.globalAlpha=.5; drawTile(ctx,kind,hover.c*T,hover.r*T,{top:true}); ctx.globalAlpha=1; }
-    ctx.strokeStyle=ok?'#ffe066':'#f05252'; ctx.lineWidth=3; ctx.strokeRect(hover.c*T+1.5,hover.r*T+1.5,T-3,T-3);
+    const wide=kind==='seesaw', hx=(hover.c-(wide?1:0))*T, hw=wide?3*T:T;
+    if(dragging&&ok&&ALL.includes(kind)){
+      ctx.globalAlpha=.5;
+      if(wide) drawSeesaw(ctx,hover.c*T,hover.r*T,-1); else drawTile(ctx,kind,hover.c*T,hover.r*T,{top:true});
+      ctx.globalAlpha=1;
+    }
+    ctx.strokeStyle=ok?'#ffe066':'#f05252'; ctx.lineWidth=3; ctx.strokeRect(hx+1.5,hover.r*T+1.5,hw-3,T-3);
   }
   // squirrel
-  if(sq){
+  if(sq&&sq.hidden>0){ /* inside a cannon or a log tunnel */ }
+  else if(sq){
+    if(sq.zip){ const ry=Math.round(sq.y-36); R(ctx,Math.round(sq.x)-6,ry-3,12,6,'#374151'); R(ctx,Math.round(sq.x)-1,ry+3,2,4,'#9ca3af'); }
     const frame=sq.onGround&&mode==='run'?Math.floor(sq.anim*10)%2:(sq.climbing?Math.floor(sq.anim*8)%2:0);
     drawSquirrel(ctx,sq.x,sq.y,sq.dir,frame,sq.climbing);
     if(sq.hasNut) sprite(ctx,NUT,NUT_PAL,sq.x-8,sq.y-58+Math.round(Math.sin(time*6)*2),2,false);

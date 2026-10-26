@@ -14,13 +14,13 @@ A retro arcade side-scroller made for Ru. A squirrel runs through an autumn wood
 - **Boing!** Land on top of a hedgehog or swan to bounce off it for +50. Chain bounces without touching the ground for 100, then 200. Stumps, rocks, bollards, crates and walls are safe to land on and run along; only running into their sides ends the run.
 - **? boxes:** headbutt one from underneath to release a golden acorn and become Super Squirrel for 7 seconds, knocking anything in the way flying for +25. You can also stand on the boxes.
 - **Speed:** Gentle or Zoomy, using the button under the game.
-- **Levels:** Autumn Wood, or Winchester (the cathedral, Great Hall, Westgate, King Alfred and the Buttercross, with bollards, market crates, flint walls and swans to jump). Use the Level button, or the left and right arrows on the title screen.
+- **Levels:** Free build (drag the squirrel and walnut anywhere, saved in the browser) plus nine challenges with limited pieces: Gap, Cliff, Boing, Sky nut, Zipline, Seesaw, Cannon, Hedge and Grand course.
 
 ## Squirrel Course Builder
 
 Inspired by Mark Rober's squirrel obstacle courses. Drag pieces onto the screen to build a course, press GO, and the squirrel runs it to reach the walnut.
 
-- **Pieces:** branch, ramps, crate, tree (climbable), spring, fan and grass.
+- **Pieces:** branch, ramps, crate, tree (climbable), spring, fan, grass, zipline posts (the squirrel whizzes to the next post along), seesaw (3 wide, tips when the squirrel passes the middle), cannon (fires the squirrel in an arc) and log tunnels (go in one, pop out of its partner; tunnels pair up from left to right). Brambles are prickly and end the run.
 - **The squirrel** runs right on its own, hops up single steps, turns round at taller walls and falls if there is nothing underneath.
 - **Levels:** Free build (drag the squirrel and walnut anywhere, saved in the browser) plus four challenges with limited pieces: Gap, Cliff, Boing and Sky nut.
 
